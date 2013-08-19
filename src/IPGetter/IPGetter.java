@@ -1,7 +1,6 @@
 package IPGetter;
 
 import java.awt.AWTException;
-import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
@@ -19,7 +18,6 @@ import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
 
 public class IPGetter {
@@ -27,10 +25,12 @@ public class IPGetter {
   private static final URL IP_CHECK_URL =
       makeURL("http://ipchk.sourceforge.net/rawip/");
   
-  private static final int INTERVAL_TIME = 5*60*1000;
+  private static final int QUICK_INTERVAL = 5 * 1000;
+  private static final int SLOW_INTERVAL  = 5 * 60 * 1000;
   
   private String currentIP;
   private TrayIcon trayIcon;
+  private Timer quickTimer = null;
   
   public IPGetter() {
     currentIP = getIPAddress();
@@ -61,10 +61,15 @@ public class IPGetter {
     } catch (Exception e) {
       
       e.printStackTrace();
-      return null;
+      quickTimer = constructTimer(QUICK_INTERVAL);      
+      return "<unknown>";
       
     }
      
+  }
+  
+  private void displayMessage(String message, TrayIcon.MessageType messageType) {
+    trayIcon.displayMessage("IPGetter", message + currentIP, messageType);
   }
   
   private void displayUpdateMessage(boolean onlyWhenChanged) {
@@ -72,17 +77,24 @@ public class IPGetter {
     String newIP = getIPAddress();
     
     if (!currentIP.equals(newIP)) {
-      trayIcon.displayMessage("IPGetter", "New IP: " + currentIP,
-          TrayIcon.MessageType.INFO);
-    } else if (!onlyWhenChanged) {
-      trayIcon.displayMessage("IPGetter", "IP not changed: " + currentIP,
-          TrayIcon.MessageType.INFO);
-    }
+      
+      currentIP = newIP;
+      displayMessage("New IP: ", TrayIcon.MessageType.INFO);
+      
+      if (quickTimer != null && !currentIP.equals("<unknown>")) {
+        quickTimer.cancel();
+      }
+      
+    } else if (!onlyWhenChanged)
+      displayMessage("IP not changed: ", TrayIcon.MessageType.INFO);
+    
   }
   
   private void copyIPToClipboard() {
+    
     Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
         new StringSelection(currentIP), null);
+    
   }
   
   private void createAndShowGUI() {
@@ -147,7 +159,7 @@ public class IPGetter {
     });
   }
   
-  private void constructTimer() {
+  private Timer constructTimer(int intervalTime) {
     
     Timer timer = new Timer();
     timer.scheduleAtFixedRate(new TimerTask() {
@@ -155,7 +167,8 @@ public class IPGetter {
         public void run() {
           displayUpdateMessage(true);
         }
-    }, INTERVAL_TIME, INTERVAL_TIME);
+    }, intervalTime, intervalTime);
+    return timer;
     
   }
 
@@ -166,7 +179,7 @@ public class IPGetter {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         ipGetter.createAndShowGUI();
-        ipGetter.constructTimer();
+        ipGetter.constructTimer(SLOW_INTERVAL);
       }
     });
     
