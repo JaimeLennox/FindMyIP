@@ -1,4 +1,4 @@
-package IPGetter;
+package findMyIP;
 
 import java.awt.AWTException;
 import java.awt.MenuItem;
@@ -20,7 +20,7 @@ import java.util.TimerTask;
 
 import javax.swing.SwingUtilities;
 
-public class IPGetter {
+public class FindMyIP {
   
   private static final URL IP_CHECK_URL =
       makeURL("http://ipchk.sourceforge.net/rawip/");
@@ -28,11 +28,13 @@ public class IPGetter {
   private static final int QUICK_INTERVAL = 5 * 1000;
   private static final int SLOW_INTERVAL  = 5 * 60 * 1000;
   
+  private static final String name = "FindMyIP";
+  
   private String currentIP;
   private TrayIcon trayIcon;
   private Timer quickTimer = null;
   
-  public IPGetter() {
+  public FindMyIP() {
     currentIP = getIPAddress();
   }
   
@@ -69,7 +71,7 @@ public class IPGetter {
   }
   
   private void displayMessage(String message, TrayIcon.MessageType messageType) {
-    trayIcon.displayMessage("IPGetter", message + currentIP, messageType);
+    trayIcon.displayMessage(name, message + currentIP, messageType);
   }
   
   private void displayUpdateMessage(boolean onlyWhenChanged) {
@@ -99,10 +101,11 @@ public class IPGetter {
   
   private void createAndShowGUI() {
     
-    //Check the SystemTray support
     if (!SystemTray.isSupported()) {
+      
         System.out.println("SystemTray is not supported");
-        return;
+        System.exit(1);
+        
     }
     
     PopupMenu popupMenu= new PopupMenu();
@@ -117,7 +120,7 @@ public class IPGetter {
     popupMenu.add(exitItem);
     
     trayIcon = new TrayIcon(Toolkit.getDefaultToolkit().getImage((
-        getClass().getResource("/icon.png"))), "IPGetter", popupMenu);
+        getClass().getResource("/icon.png"))), name, popupMenu);
     
     try {
       SystemTray.getSystemTray().add(trayIcon);
@@ -127,7 +130,7 @@ public class IPGetter {
     
     trayIcon.setImageAutoSize(true);
     trayIcon.setToolTip("Current IP: " + currentIP);
-    trayIcon.displayMessage("IPGetter", "Current IP: " + currentIP,
+    trayIcon.displayMessage(name, "Current IP: " + currentIP,
         TrayIcon.MessageType.INFO);
     
     trayIcon.addMouseListener(new MouseAdapter() {
@@ -174,12 +177,12 @@ public class IPGetter {
 
   public static void main(String[] args) {
     
-    final IPGetter ipGetter = new IPGetter();  
+    final FindMyIP ipFinder = new FindMyIP();  
     
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
-        ipGetter.createAndShowGUI();
-        ipGetter.constructTimer(SLOW_INTERVAL);
+        ipFinder.createAndShowGUI();
+        ipFinder.constructTimer(SLOW_INTERVAL);
       }
     });
     
