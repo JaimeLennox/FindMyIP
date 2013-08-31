@@ -12,12 +12,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
 
 public class FindMyIP {
@@ -118,9 +120,12 @@ public class FindMyIP {
     popupMenu.addSeparator();
     popupMenu.add(updateItem);
     popupMenu.add(exitItem);
-    
-    trayIcon = new TrayIcon(Toolkit.getDefaultToolkit().getImage((
-        getClass().getResource("/icon.png"))), name, popupMenu);
+
+    try {
+      trayIcon = new TrayIcon(ImageIO.read(getClass().getResource(("/icon.png"))), name, popupMenu);
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
     
     try {
       SystemTray.getSystemTray().add(trayIcon);
