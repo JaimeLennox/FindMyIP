@@ -1,5 +1,7 @@
 package findMyIP;
 
+import javax.imageio.ImageIO;
+import javax.swing.SwingUtilities;
 import java.awt.AWTException;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
@@ -16,11 +18,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import javax.imageio.ImageIO;
-import javax.swing.SwingUtilities;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class FindMyIP {
   
@@ -34,7 +34,7 @@ public class FindMyIP {
   
   private String currentIP;
   private TrayIcon trayIcon;
-  private Timer quickTimer = null;
+  private ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
   
   public FindMyIP() {
     currentIP = getIPAddress();
@@ -64,8 +64,7 @@ public class FindMyIP {
       
     } catch (Exception e) {
       
-      e.printStackTrace();
-      quickTimer = constructTimer(QUICK_INTERVAL);      
+      updateTimer(QUICK_INTERVAL);
       return "<unknown>";
       
     }
@@ -85,8 +84,8 @@ public class FindMyIP {
       currentIP = newIP;
       displayMessage("New IP: ", TrayIcon.MessageType.INFO);
       
-      if (quickTimer != null && !currentIP.equals("<unknown>")) {
-        quickTimer.cancel();
+      if (timer != null && !currentIP.equals("<unknown>")) {
+        updateTimer(SLOW_INTERVAL);
       }
       
     } else if (!onlyWhenChanged)
@@ -167,16 +166,16 @@ public class FindMyIP {
     });
   }
   
-  private Timer constructTimer(int intervalTime) {
-    
-    Timer timer = new Timer();
-    timer.scheduleAtFixedRate(new TimerTask() {
+  private void updateTimer(int intervalTime) {
+
+    timer.shutdown();
+    timer = Executors.newSingleThreadScheduledExecutor();
+    timer.scheduleAtFixedRate(new Runnable() {
         @Override
         public void run() {
-          displayUpdateMessage(true);
+            displayUpdateMessage(true);
         }
-    }, intervalTime, intervalTime);
-    return timer;
+    }, 0, intervalTime, TimeUnit.SECONDS);
     
   }
 
@@ -187,7 +186,7 @@ public class FindMyIP {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         ipFinder.createAndShowGUI();
-        ipFinder.constructTimer(SLOW_INTERVAL);
+        ipFinder.updateTimer(SLOW_INTERVAL);
       }
     });
     
