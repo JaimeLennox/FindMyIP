@@ -24,9 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 public class FindMyIP {
   
-  private static final URL IP_CHECK_URL =
-      makeURL("http://ipchk.sourceforge.net/rawip/");
-  
   private static final int QUICK_INTERVAL = 5 * 1000;
   private static final int SLOW_INTERVAL  = 5 * 60 * 1000;
   
@@ -37,55 +34,30 @@ public class FindMyIP {
   private ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
   
   public FindMyIP() {
-    currentIP = getIPAddress();
+    currentIP = IPUtils.getIPAddress();
   }
-  
-  private static URL makeURL(String URLString) {
-    
-    try {
-      
-      return new URL(URLString);
-      
-    } catch (MalformedURLException e) {
-      
-      e.printStackTrace();
-      return null;
-      
-    }
-    
-  }
-  
-  private String getIPAddress() {
-    
-    try (BufferedReader in = new BufferedReader(new InputStreamReader(
-        IP_CHECK_URL.openStream()));) {
-      
-      return in.readLine();
-      
-    } catch (Exception e) {
-      
-      updateTimer(QUICK_INTERVAL);
-      return "<unknown>";
-      
-    }
-     
-  }
-  
+
   private void displayMessage(String message, TrayIcon.MessageType messageType) {
     trayIcon.displayMessage(name, message + currentIP, messageType);
   }
   
   private void displayUpdateMessage(boolean onlyWhenChanged) {
     
-    String newIP = getIPAddress();
+    String newIP = IPUtils.getIPAddress();
     
     if (!currentIP.equals(newIP)) {
       
       currentIP = newIP;
       displayMessage("New IP: ", TrayIcon.MessageType.INFO);
       
-      if (timer != null && !currentIP.equals("<unknown>")) {
-        updateTimer(SLOW_INTERVAL);
+      if (timer != null) {
+
+        if (!currentIP.equals("<unknown>")) {
+            updateTimer(SLOW_INTERVAL);
+        }
+        else {
+            updateTimer(QUICK_INTERVAL);
+        }
       }
       
     } else if (!onlyWhenChanged)
@@ -106,7 +78,7 @@ public class FindMyIP {
       
         System.out.println("SystemTray is not supported");
         System.exit(1);
-        
+
     }
     
     PopupMenu popupMenu= new PopupMenu();
