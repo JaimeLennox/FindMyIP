@@ -9,29 +9,35 @@ import java.net.UnknownHostException;
 
 public class IPUtils {
 
+    private static String[] urls = { "http://myexternalip.com/raw",
+                                     "http://ipchk.sourceforge.net/rawip/" };
+
     private static final URL IP_CHECK_URL =
-            makeURL("http://ipchk.sourceforge.net/rawip/");
+            makeURL(urls);
 
-    private static URL makeURL(String URLString) {
+    private static URL makeURL(String[] URLStrings) {
 
-        try {
-            return new URL(URLString);
+        for (String url : URLStrings) {
+            try {
+                return new URL(url);
+            } catch (MalformedURLException e) {
+                // Try next url.
+            }
         }
-        catch (MalformedURLException e) {
-            e.printStackTrace();
-            return null;
-        }
+
+        return null;
     }
 
     public static String getIPAddress() {
-        String IPAddress = getIPFromURL();
+        return checkIP(getIPFromURL());
+    }
 
-        // Fallback.
-        if (IPAddress == null) {
-            IPAddress = getIPFromAPI();
-        }
+    public static String getLocalIPAddress() {
+        return checkIP(getIPFromAPI());
+    }
 
-        if (IPAddress == null) {
+    private static String checkIP(String IPAddress) {
+        if (IPAddress == null || IPAddress.equals("127.0.0.1")) {
             return "<unknown>";
         }
 

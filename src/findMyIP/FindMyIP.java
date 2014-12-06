@@ -30,39 +30,51 @@ public class FindMyIP {
   private static final String name = "FindMyIP";
   
   private String currentIP;
+  private String currentLocalIP;
   private TrayIcon trayIcon;
   private ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
   
   public FindMyIP() {
     currentIP = IPUtils.getIPAddress();
+    currentLocalIP = IPUtils.getLocalIPAddress();
   }
 
-  private void displayMessage(String message, TrayIcon.MessageType messageType) {
-    trayIcon.displayMessage(name, message + currentIP, messageType);
+  private void displayMessage(String message, String localMessage) {
+    trayIcon.displayMessage(name, message + currentIP + "\n" + localMessage + currentLocalIP, TrayIcon.MessageType.INFO);
   }
   
   private void displayUpdateMessage(boolean onlyWhenChanged) {
+
+    String message = onlyWhenChanged ? null : "IP not changed: ";
+    String localMessage = onlyWhenChanged ? null : "Local IP not changed";
     
     String newIP = IPUtils.getIPAddress();
     
     if (!currentIP.equals(newIP)) {
-      
       currentIP = newIP;
-      displayMessage("New IP: ", TrayIcon.MessageType.INFO);
-      
-      if (timer != null) {
+      message = "New public IP: ";
+    }
 
-        if (!currentIP.equals("<unknown>")) {
-            updateTimer(SLOW_INTERVAL);
-        }
-        else {
-            updateTimer(QUICK_INTERVAL);
-        }
+    newIP = IPUtils.getLocalIPAddress();
+
+    if (!currentLocalIP.equals(newIP)) {
+      currentLocalIP = newIP;
+      localMessage = "New local IP: ";
+    }
+
+    if (timer != null) {
+
+      if (currentIP.equals("<unknown>") || currentLocalIP.equals("<unknown>")) {
+        updateTimer(QUICK_INTERVAL);
       }
-      
-    } else if (!onlyWhenChanged)
-      displayMessage("IP not changed: ", TrayIcon.MessageType.INFO);
-    
+      else {
+        updateTimer(SLOW_INTERVAL);
+      }
+    }
+
+    if (message != null && localMessage != null) {
+      displayMessage(message, localMessage);
+    }
   }
   
   private void copyIPToClipboard() {
@@ -70,6 +82,11 @@ public class FindMyIP {
     Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
         new StringSelection(currentIP), null);
     
+  }
+
+  private void copyLocalIPToClipboard() {
+    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+            new StringSelection(currentLocalIP), null);
   }
   
   private void createAndShowGUI() {
@@ -83,11 +100,13 @@ public class FindMyIP {
     
     PopupMenu popupMenu= new PopupMenu();
     
-    MenuItem copyItem = new MenuItem("Copy IP to clipboard");
+    MenuItem copyItem = new MenuItem("Copy public IP to clipboard");
+    MenuItem copyLocalItem = new MenuItem("Copy local IP to clipboard");
     MenuItem updateItem = new MenuItem("Update now");
     MenuItem exitItem = new MenuItem("Exit");
     
     popupMenu.add(copyItem);
+    popupMenu.add(copyLocalItem);
     popupMenu.addSeparator();
     popupMenu.add(updateItem);
     popupMenu.add(exitItem);
@@ -105,22 +124,19 @@ public class FindMyIP {
     }
     
     trayIcon.setImageAutoSize(true);
-    trayIcon.setToolTip("Current IP: " + currentIP);
-    trayIcon.displayMessage(name, "Current IP: " + currentIP,
-        TrayIcon.MessageType.INFO);
-    
-    trayIcon.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseClicked(MouseEvent e) {
-          if (e.getButton() == MouseEvent.BUTTON1) {
-              copyIPToClipboard();
-          }
-      }
-    });
+    trayIcon.setToolTip("Current IP: " + currentIP + "\n" + "Current Local IP: " + currentLocalIP);
+    displayMessage("Current IP: ", "Current Local IP: ");
     
     copyItem.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
         copyIPToClipboard();
+      }
+    });
+
+    copyLocalItem.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        copyLocalIPToClipboard();
       }
     });
     
