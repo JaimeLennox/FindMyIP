@@ -43,7 +43,7 @@ public class FindMyIP {
     private void displayUpdateMessage(boolean onlyWhenChanged) {
 
         String message = onlyWhenChanged ? null : "IP not changed: ";
-        String localMessage = onlyWhenChanged ? null : "Local IP not changed";
+        String localMessage = onlyWhenChanged ? null : "Local IP not changed: ";
 
         String newIP = IPUtils.getIPAddress();
 
