@@ -22,6 +22,7 @@ public class IPUtils {
                 return new URL(url);
             } catch (MalformedURLException e) {
                 // Try next url.
+                continue;
             }
         }
 
