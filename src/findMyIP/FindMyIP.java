@@ -40,7 +40,7 @@ public class FindMyIP {
        trayIcon.displayMessage(name, message + currentIP + "\n" + localMessage + currentLocalIP, TrayIcon.MessageType.INFO);
     }
 
-    private void displayUpdateMessage(boolean onlyWhenChanged) {
+    private void update(boolean onlyWhenChanged) {
 
         String message = onlyWhenChanged ? null : "IP not changed: ";
         String localMessage = onlyWhenChanged ? null : "Local IP not changed: ";
@@ -139,7 +139,7 @@ public class FindMyIP {
 
         updateItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                displayUpdateMessage(false);
+                update(false);
             }
         });
 
@@ -158,7 +158,7 @@ public class FindMyIP {
         timer.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                displayUpdateMessage(true);
+                update(true);
             }
         }, 0, intervalTime, TimeUnit.SECONDS);
 
