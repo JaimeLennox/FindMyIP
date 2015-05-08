@@ -91,6 +91,7 @@ public class FindMyIP {
         if (message != null && localMessage != null) {
             displayMessage(message, localMessage);
         }
+        trayIcon.setToolTip("Current IP: " + currentIP + "\n" + "Current Local IP: " + currentLocalIP);
     }
 
     private void save() {
