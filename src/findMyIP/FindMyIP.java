@@ -25,8 +25,8 @@ import java.util.prefs.Preferences;
 
 public class FindMyIP {
   
-    private static final int QUICK_INTERVAL = 5 * 1000;      // 5 seconds.
-    private static final int SLOW_INTERVAL  = 5 * 60 * 1000; // 5 minutes.
+    private static final int QUICK_INTERVAL = 5;      // 5 seconds.
+    private static final int SLOW_INTERVAL  = 5 * 60; // 5 minutes.
 
     private static final Preferences prefs = Preferences.userNodeForPackage(FindMyIP.class);
     private static final String DEFAULT_FILENAME = "";
