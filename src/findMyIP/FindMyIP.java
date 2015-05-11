@@ -25,19 +25,21 @@ import java.util.prefs.Preferences;
 
 public class FindMyIP {
   
-    private static final int QUICK_INTERVAL = 5;      // 5 seconds.
+    private static final int FAST_INTERVAL = 5;       // 5 seconds.
     private static final int SLOW_INTERVAL  = 5 * 60; // 5 minutes.
 
     private static final Preferences prefs = Preferences.userNodeForPackage(FindMyIP.class);
     private static final String DEFAULT_FILENAME = "";
     private static final String SAVE_FILE = "save";
-
-    private static final String name = "FindMyIP";
+    private static final String NAME = "FindMyIP";
 
     private String currentIP;
     private String currentLocalIP;
     private TrayIcon trayIcon;
-    private ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
+
+    private ScheduledExecutorService slowTimer = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService fastTimer = Executors.newSingleThreadScheduledExecutor();
+    private Turn turn = Turn.SLOW;
   
     public FindMyIP() {
         currentIP = IPUtils.getIPAddress();
@@ -50,14 +52,12 @@ public class FindMyIP {
     }
 
     private void displayMessage(String message, String localMessage) {
-       trayIcon.displayMessage(name, message + currentIP + "\n" + localMessage + currentLocalIP, TrayIcon.MessageType.INFO);
+        trayIcon.displayMessage(NAME, message + currentIP + "\n" + localMessage + currentLocalIP, TrayIcon.MessageType.INFO);
     }
 
-    private void update(boolean onlyWhenChanged) {
-
-        String message = onlyWhenChanged ? null : "IP not changed: ";
-        String localMessage = onlyWhenChanged ? null : "Local IP not changed: ";
-
+    private void update(boolean displayMessage) {
+        String message;
+        String localMessage;
         boolean save = false;
         String newIP = IPUtils.getIPAddress();
 
@@ -65,7 +65,9 @@ public class FindMyIP {
             currentIP = newIP;
             message = "New public IP: ";
             save = true;
-
+        }
+        else {
+            message = "IP not changed: ";
         }
 
         newIP = IPUtils.getLocalIPAddress();
@@ -75,22 +77,15 @@ public class FindMyIP {
             localMessage = "New local IP: ";
             save = true;
         }
+        else {
+            localMessage = "Local IP not changed: ";
+        }
 
         if (save) save();
 
-        if (timer != null) {
+        turn = currentIP.equals("<unknown>") || currentLocalIP.equals("<unknown>") ? Turn.FAST : Turn.SLOW;
 
-            if (currentIP.equals("<unknown>") || currentLocalIP.equals("<unknown>")) {
-                updateTimer(QUICK_INTERVAL);
-            }
-            else {
-                updateTimer(SLOW_INTERVAL);
-            }
-        }
-
-        if (message != null && localMessage != null) {
-            displayMessage(message, localMessage);
-        }
+        if (displayMessage || save) displayMessage(message, localMessage);
         trayIcon.setToolTip("Current IP: " + currentIP + "\n" + "Current Local IP: " + currentLocalIP);
     }
 
@@ -108,7 +103,6 @@ public class FindMyIP {
     }
 
     private void copyIPToClipboard() {
-
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                 new StringSelection(currentIP), null);
 
@@ -119,8 +113,7 @@ public class FindMyIP {
                 new StringSelection(currentLocalIP), null);
     }
 
-    private void createAndShowGUI() {
-
+    private void start() {
         if (!SystemTray.isSupported()) {
             System.out.println("SystemTray is not supported");
             System.exit(1);
@@ -142,7 +135,7 @@ public class FindMyIP {
         popupMenu.add(exitItem);
 
         try {
-            trayIcon = new TrayIcon(ImageIO.read(getClass().getResource(("/icon.png"))), name, popupMenu);
+            trayIcon = new TrayIcon(ImageIO.read(getClass().getResource(("/icon.png"))), NAME, popupMenu);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -174,7 +167,7 @@ public class FindMyIP {
 
         updateItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                update(false);
+                update(true);
             }
         });
 
@@ -204,32 +197,35 @@ public class FindMyIP {
                 System.exit(0);
             }
         });
+
+        updateTimers();
     }
 
-    private void updateTimer(int intervalTime) {
-
-        timer.shutdown();
-        timer = Executors.newSingleThreadScheduledExecutor();
-        timer.scheduleAtFixedRate(new Runnable() {
+    private void updateTimers() {
+        slowTimer.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                update(true);
+                if (turn == Turn.FAST) return;
+                update(false);
             }
-        }, 0, intervalTime, TimeUnit.SECONDS);
+        }, 0, SLOW_INTERVAL, TimeUnit.SECONDS);
 
+        fastTimer.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (turn == Turn.SLOW) return;
+                update(false);
+            }
+        }, 0, FAST_INTERVAL, TimeUnit.SECONDS);
     }
 
     public static void main(String[] args) {
-
         final FindMyIP ipFinder = new FindMyIP();
-
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                ipFinder.createAndShowGUI();
-                ipFinder.updateTimer(SLOW_INTERVAL);
+                ipFinder.start();
             }
         });
-
     }
 
 }
