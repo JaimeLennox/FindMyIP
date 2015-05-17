@@ -26,7 +26,7 @@ import java.util.prefs.Preferences;
 public class FindMyIP {
   
     private static final int FAST_INTERVAL = 5;       // 5 seconds.
-    private static final int SLOW_INTERVAL  = 5 * 60; // 5 minutes.
+    private static final int SLOW_INTERVAL = 5 * 60; // 5 minutes.
 
     private static final Preferences prefs = Preferences.userNodeForPackage(FindMyIP.class);
     private static final String DEFAULT_FILENAME = "";
@@ -40,10 +40,15 @@ public class FindMyIP {
     private ScheduledExecutorService slowTimer = Executors.newSingleThreadScheduledExecutor();
     private ScheduledExecutorService fastTimer = Executors.newSingleThreadScheduledExecutor();
     private Turn turn = Turn.SLOW;
+
+    private boolean daemon;
   
-    public FindMyIP() {
+    public FindMyIP(boolean daemon, String saveFile) {
+        this.daemon = daemon;
+        if (saveFile != null) prefs.put(SAVE_FILE, saveFile);
         currentIP = IPUtils.getIPAddress();
         currentLocalIP = IPUtils.getLocalIPAddress();
+        System.out.println("Started with current IP " + currentIP + ", local IP " + currentLocalIP);
     }
 
     private File getSaveFile() {
@@ -52,16 +57,20 @@ public class FindMyIP {
     }
 
     private void displayMessage(String message, String localMessage) {
+        System.out.println("Current IP: " + currentIP);
+        System.out.println("Current local IP: " + currentLocalIP);
         trayIcon.displayMessage(NAME, message + currentIP + "\n" + localMessage + currentLocalIP, TrayIcon.MessageType.INFO);
     }
 
     private void update(boolean displayMessage) {
+        System.out.println("Updating");
         String message;
         String localMessage;
         boolean save = false;
         String newIP = IPUtils.getIPAddress();
 
         if (!currentIP.equals(newIP)) {
+            System.out.println("New IP found");
             currentIP = newIP;
             message = "New public IP: ";
             save = true;
@@ -73,6 +82,7 @@ public class FindMyIP {
         newIP = IPUtils.getLocalIPAddress();
 
         if (!currentLocalIP.equals(newIP)) {
+            System.out.println("New local IP found");
             currentLocalIP = newIP;
             localMessage = "New local IP: ";
             save = true;
@@ -93,6 +103,7 @@ public class FindMyIP {
         File saveFile = getSaveFile();
         if (saveFile == null) return;
         try {
+            System.out.println("Saving to file: " + saveFile.getAbsolutePath());
             PrintWriter printWriter = new PrintWriter(saveFile);
             printWriter.println(currentIP);
             printWriter.println(currentLocalIP);
@@ -103,17 +114,26 @@ public class FindMyIP {
     }
 
     private void copyIPToClipboard() {
+        System.out.println("Copied IP to clipboard");
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                 new StringSelection(currentIP), null);
 
     }
 
     private void copyLocalIPToClipboard() {
-         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+        System.out.println("Copied local IP to clipboard");
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                 new StringSelection(currentLocalIP), null);
     }
 
     private void start() {
+        System.out.println("Starting application");
+
+        if (daemon) {
+            System.out.println("Application started in daemon mode");
+            updateTimers();
+            return;
+        }
         if (!SystemTray.isSupported()) {
             System.out.println("SystemTray is not supported");
             System.exit(1);
@@ -198,6 +218,8 @@ public class FindMyIP {
             }
         });
 
+        System.out.println("Finished setup, starting timers");
+
         updateTimers();
     }
 
@@ -220,7 +242,28 @@ public class FindMyIP {
     }
 
     public static void main(String[] args) {
-        final FindMyIP ipFinder = new FindMyIP();
+
+        boolean daemon = false;
+        String file = null;
+
+        if (args.length != 0) {
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].equals("-d")) {
+                    daemon = true;
+                }
+                else if (args[i].equals("-f")) {
+                    if (i + 1 >= args.length) {
+                        System.out.println("Please provide a file to save to");
+                    }
+                    else {
+                        file = args[i+1];
+                    }
+
+                }
+            }
+        }
+
+        final FindMyIP ipFinder = new FindMyIP(daemon, file);
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 ipFinder.start();
