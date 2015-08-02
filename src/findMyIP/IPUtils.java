@@ -6,27 +6,29 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class IPUtils {
 
     private static String[] urls = { "http://myexternalip.com/raw",
                                      "http://ipchk.sourceforge.net/rawip/" };
 
-    private static final URL IP_CHECK_URL =
-            makeURL(urls);
+    private static List<URL> validUrls = makeURLs(urls);
 
-    private static URL makeURL(String[] URLStrings) {
+    private static List<URL> makeURLs(String[] URLStrings) {
+        List<URL> urls = new ArrayList<>();
 
         for (String url : URLStrings) {
             try {
-                return new URL(url);
+                urls.add(new URL(url));
             } catch (MalformedURLException e) {
                 // Try next url.
                 continue;
             }
         }
 
-        return null;
+        return urls;
     }
 
     public static String getIPAddress() {
@@ -46,15 +48,15 @@ public class IPUtils {
     }
 
     private static String getIPFromURL() {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(
-                IP_CHECK_URL.openStream()));) {
-            String ipString = in.readLine();
-            if (validIP(ipString)) {
-                return ipString;
+        for (URL url : validUrls) {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()))) {
+                String ipString = in.readLine();
+                if (validIP(ipString)) {
+                    return ipString;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
         }
 
         return null;
