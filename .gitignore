@@ -9,3 +9,12 @@
 .classpath
 .project
 .settings
+
+# IntelliJ Project Files #
+*.iml
+.idea
+
+# Misc
+bin
+target
+*.svg
