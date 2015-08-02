@@ -1,5 +1,8 @@
 package findMyIP;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.SwingUtilities;
@@ -24,9 +27,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.prefs.Preferences;
 
 public class FindMyIP {
+
+    private static final Logger logger = LoggerFactory.getLogger(FindMyIP.class);
   
     private static final int FAST_INTERVAL = 5;       // 5 seconds.
-    private static final int SLOW_INTERVAL = 5 * 60; // 5 minutes.
+    private static final int SLOW_INTERVAL = 5 * 60;  // 5 minutes.
 
     private static final Preferences prefs = Preferences.userNodeForPackage(FindMyIP.class);
     private static final String DEFAULT_FILENAME = "";
@@ -48,7 +53,7 @@ public class FindMyIP {
         if (saveFile != null) prefs.put(SAVE_FILE, saveFile);
         currentIP = IPUtils.getIPAddress();
         currentLocalIP = IPUtils.getLocalIPAddress();
-        System.out.println("Started with current IP " + currentIP + ", local IP " + currentLocalIP);
+        logger.info("Started with current IP " + currentIP + ", local IP " + currentLocalIP);
     }
 
     private File getSaveFile() {
@@ -57,20 +62,20 @@ public class FindMyIP {
     }
 
     private void displayMessage(String message, String localMessage) {
-        System.out.println("Current IP: " + currentIP);
-        System.out.println("Current local IP: " + currentLocalIP);
+        logger.info("Current IP: " + currentIP);
+        logger.info("Current local IP: " + currentLocalIP);
         trayIcon.displayMessage(NAME, message + currentIP + "\n" + localMessage + currentLocalIP, TrayIcon.MessageType.INFO);
     }
 
     private void update(boolean displayMessage) {
-        System.out.println("Updating");
+        logger.info("Updating");
         String message;
         String localMessage;
         boolean save = false;
         String newIP = IPUtils.getIPAddress();
 
         if (!currentIP.equals(newIP)) {
-            System.out.println("New IP found");
+            logger.info("New IP found");
             currentIP = newIP;
             message = "New public IP: ";
             save = true;
@@ -82,7 +87,7 @@ public class FindMyIP {
         newIP = IPUtils.getLocalIPAddress();
 
         if (!currentLocalIP.equals(newIP)) {
-            System.out.println("New local IP found");
+            logger.info("New local IP found");
             currentLocalIP = newIP;
             localMessage = "New local IP: ";
             save = true;
@@ -103,7 +108,7 @@ public class FindMyIP {
         File saveFile = getSaveFile();
         if (saveFile == null) return;
         try {
-            System.out.println("Saving to file: " + saveFile.getAbsolutePath());
+            logger.info("Saving to file: " + saveFile.getAbsolutePath());
             PrintWriter printWriter = new PrintWriter(saveFile);
             printWriter.println(currentIP);
             printWriter.println(currentLocalIP);
@@ -114,28 +119,28 @@ public class FindMyIP {
     }
 
     private void copyIPToClipboard() {
-        System.out.println("Copied IP to clipboard");
+        logger.info("Copied IP to clipboard");
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                 new StringSelection(currentIP), null);
 
     }
 
     private void copyLocalIPToClipboard() {
-        System.out.println("Copied local IP to clipboard");
+        logger.info("Copied local IP to clipboard");
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                 new StringSelection(currentLocalIP), null);
     }
 
     private void start() {
-        System.out.println("Starting application");
+        logger.info("Starting application");
 
         if (daemon) {
-            System.out.println("Application started in daemon mode");
+            logger.info("Application started in daemon mode");
             updateTimers();
             return;
         }
         if (!SystemTray.isSupported()) {
-            System.out.println("SystemTray is not supported");
+            logger.info("SystemTray is not supported");
             System.exit(1);
         }
 
@@ -158,14 +163,14 @@ public class FindMyIP {
             trayIcon = new TrayIcon(ImageIO.read(getClass().getResource(("/icon.png"))), NAME, popupMenu);
         }
         catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Couldn't get tray icon image.", e);
         }
 
         try {
             SystemTray.getSystemTray().add(trayIcon);
         }
         catch (AWTException e) {
-            e.printStackTrace();
+            logger.error("Couldn't add tray icon to system tray.", e);
         }
 
         trayIcon.setImageAutoSize(true);
@@ -218,7 +223,7 @@ public class FindMyIP {
             }
         });
 
-        System.out.println("Finished setup, starting timers");
+        logger.info("Finished setup, starting timers");
 
         updateTimers();
     }
@@ -253,7 +258,7 @@ public class FindMyIP {
                 }
                 else if (args[i].equals("-f")) {
                     if (i + 1 >= args.length) {
-                        System.out.println("Please provide a file to save to");
+                        System.out.println("Please provide a file to save to.");
                     }
                     else {
                         file = args[i+1];

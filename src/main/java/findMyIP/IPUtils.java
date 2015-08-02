@@ -1,5 +1,8 @@
 package findMyIP;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -10,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IPUtils {
+
+    private static Logger logger = LoggerFactory.getLogger(IPUtils.class);
 
     private static String[] urls = { "http://myexternalip.com/raw",
                                      "http://ipchk.sourceforge.net/rawip/" };
@@ -23,8 +28,7 @@ public class IPUtils {
             try {
                 urls.add(new URL(url));
             } catch (MalformedURLException e) {
-                // Try next url.
-                continue;
+                logger.error("Url " + url + " is not valid.", e);
             }
         }
 
@@ -55,7 +59,7 @@ public class IPUtils {
                     return ipString;
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Couldn't retrieve IP from url " + url, e);
             }
         }
 
@@ -68,7 +72,7 @@ public class IPUtils {
             return IP.getHostAddress();
         }
         catch (UnknownHostException e) {
-            e.printStackTrace();
+            logger.error("Couldn't retrieve IP from localhost", e);
             return null;
         }
     }
